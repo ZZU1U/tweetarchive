@@ -1,0 +1,28 @@
+{
+  "name": "TweetArchive",
+  "description": "Archieve for tweets you've seen on your timeline so you don't loose them.",
+  "version": "0.1",
+  "manifest_version": 3,
+  "permissions": ["storage"],
+  "action": {},
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": ["https://x.com/home", "https://x.com/*"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "archive/index.html",
+        "archive/script.js",
+        "archive/style.css"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Tweet Archive</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>📚 Tweet Archive</h1>
+                <div class="stats">
+                    <span id="totalCount">0</span> tweets archived
+                </div>
+            </header>
+
+            <!-- Search & Filter Bar -->
+            <div class="filters">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search tweets..."
+                />
+
+                <select id="sortBy">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="recentlySeen">Recently Seen</option>
+                </select>
+
+                <select id="filterBy">
+                    <option value="all">All Tweets</option>
+                    <option value="images">With Images</option>
+                    <option value="text">Text Only</option>
+                </select>
+
+                <button id="clearAll" class="danger">Clear All</button>
+            </div>
+
+            <!-- Results -->
+            <div id="tweetGrid"></div>
+        </div>
+
+        <script src="script.js"></script>
+    </body>
+</html>
