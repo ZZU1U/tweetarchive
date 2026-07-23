@@ -1,5 +1,7 @@
+// IndexedDB INTERACTIONS
+
 const DB_NAME = "tweetarchive";
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 const STORE_NAME = "seentweets";
 
 let dbPromise = null;
@@ -40,18 +42,15 @@ async function addTweet(tweet) {
     const transaction = db.transaction([STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
 
-    const request = store.add(tweet);
+    // using put is better than add because it updates item if it exists
+    const request = store.put(tweet);
 
     request.onsuccess = () => {
       resolve();
     };
 
     request.onerror = (event) => {
-      if (event.target.error.name === "ConstraintError") {
-        resolve(); // ignore duplicates
-      } else {
-        reject(event.target.error);
-      }
+      reject(event.target.error);
     };
   });
 }
@@ -152,6 +151,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       });
   }
 });
+
+// OTHER LISTENERS
 
 chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.create({ url: chrome.runtime.getURL("archive/index.html") });

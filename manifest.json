@@ -4,15 +4,24 @@
   "version": "0.1",
   "manifest_version": 3,
   "permissions": ["storage"],
-  "action": {},
+  "action": {
+    "default_icon": "images/logo.png"
+  },
   "background": {
     "service_worker": "scripts/background.js"
   },
   "content_scripts": [
     {
-      "js": ["scripts/content.js"],
-      "matches": ["https://x.com/home", "https://x.com/*"],
-      "run_at": "document_idle"
+      "js": ["scripts/readfeed.js"],
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "js": ["scripts/relay.js"],
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
     }
   ],
   "web_accessible_resources": [

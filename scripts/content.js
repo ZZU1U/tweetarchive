@@ -1,13 +1,3 @@
-// TODO:
-// - add settings
-// - parse what's left: isQuoteTweet, isUserVerified
-// - handle jumping around in twitter so logging doesn't stop
-// - make better main plugin page
-// - save not only feed but also comms under posts | make it toggleable
-//
-// maybe
-// - parse userinfo, idk if its also avaliable to see
-
 async function addTweet(tweet) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
@@ -89,23 +79,26 @@ async function parseTweet(tweet) {
       if (texts.length == 1) return texts[0].textContent;
       if (texts.length == 2)
         return `${texts[0].textContent}\n> ${texts[1].textContent}`;
-      console.error("OH HELL NAH");
-      return "what the fuck man";
+      return "";
     },
-    100,
+    1000,
   );
-  const tweetImagesAndVideos = await waitForElement(tweet, () => {
-    const imgs = tweet.querySelectorAll('[data-testid="tweetPhoto"] img');
-    return (
-      imgs.length &&
-      Array.from(imgs).map((i) => {
-        return {
-          alt: i?.alt,
-          src: i?.src,
-        };
-      })
-    );
-  });
+  const tweetImagesAndVideos = await waitForElement(
+    tweet,
+    () => {
+      const imgs = tweet.querySelectorAll('[data-testid="tweetPhoto"] img');
+      return (
+        imgs.length &&
+        Array.from(imgs).map((i) => {
+          return {
+            alt: i?.alt,
+            src: i?.src,
+          };
+        })
+      );
+    },
+    3000,
+  );
   const seenTime = new Date();
 
   const tweetData = {
@@ -138,19 +131,19 @@ async function checkTweets(mutations) {
   }
 }
 
-(async function () {
-  let feed = await waitForElement(document.body, () => {
-    return articlesExist() && getHomeTimeLine()?.children[0];
-  });
+// (async function () {
+//   let feed = await waitForElement(document.body, () => {
+//     return articlesExist() && getHomeTimeLine()?.children[0];
+//   });
 
-  for (const tweet of feed.children) {
-    parseTweet(tweet);
-  }
+//   for (const tweet of feed.children) {
+//     parseTweet(tweet);
+//   }
 
-  const observer = new MutationObserver(checkTweets);
+//   const observer = new MutationObserver(checkTweets);
 
-  observer.observe(feed, {
-    childList: true,
-    subtree: false,
-  });
-})();
+//   observer.observe(feed, {
+//     childList: true,
+//     subtree: false,
+//   });
+// })();
