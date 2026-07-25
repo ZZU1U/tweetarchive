@@ -1,7 +1,9 @@
-async function addTweet(tweet) {
+// obsolete
+
+async function seeTweet(tweet) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
-      { action: "addTweet", data: tweet },
+      { action: "seeTweet", data: tweet },
       (response) => {
         if (!response) {
           reject("idk");

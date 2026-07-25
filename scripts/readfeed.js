@@ -13,44 +13,80 @@ function extractTweets(obj, found = []) {
 
   if (obj.tweet_results && obj.tweet_results.result) {
     found.push(obj.tweet_results.result);
-  }
-
-  for (const value of Object.values(obj)) {
-    if (typeof value === "object") extractTweets(value, found);
+  } else {
+    for (const value of Object.values(obj)) {
+      if (typeof value === "object") extractTweets(value, found);
+    }
   }
 
   return found;
 }
 
 function normalizeTweet(result) {
-  if (!result) return null;
-  const legacy = result.legacy || {};
-  const core = result.core?.user_results?.result?.legacy || {};
+  if (!result || !result?.legacy) return null;
+
+  const tweetText = result?.quoted_status_result?.result?.legacy?.full_text
+    ? (result?.legacy?.full_text || "") +
+      "\n> " +
+      (result?.quoted_status_result?.result?.legacy?.full_text || "").replace(
+        "\n",
+        "\n> ",
+      )
+    : result?.legacy?.full_text;
+
+  const allMedia = (result?.legacy?.entities?.media || []).concat(
+    result?.quoted_status_result?.result?.legacy?.entities?.media || [],
+  );
 
   return {
-    rest_id: result.rest_id,
-    text: legacy.full_text,
-    created_at: legacy.created_at,
+    tweetId: result.rest_id,
+    tweetText,
+    postedAt: new Date(result?.legacy.created_at),
+    viewedAt: new Date(),
+    tweetMedia: allMedia.map((m) => {
+      return m.media_url_https;
+    }),
+    isQuote: result?.legacy.is_quote_status,
+    isFavorite: result?.legacy.favorited,
+    isBookmarked: result?.legacy.bookmarked,
+    isRetweeted: result?.legacy.retweeted,
+    isSensetive: result?.legacy.possibly_sensitive,
     user: {
-      screen_name: core.screen_name,
-      name: core.name,
-      profile_image_url: core.profile_image_url_https,
+      name: result?.core.user_results.result?.core.name,
+      username: result?.core.user_results.result?.core.screen_name,
+      profile_image_url: result?.core.user_results.result?.avatar.image_url,
+      isVerified: result?.core.user_results.result?.is_blue_verified,
+      isParody: result?.core.user_results.result?.parody_commentary_fan_label,
+      userId: result?.core?.user_results?.result?.rest_id,
+      extra: {
+        description: result?.core.user_results.result?.profile_bio?.description,
+        createdAt: new Date(result?.core.user_results.result?.core?.created_at),
+        banner: result?.core.user_results.result?.legacy?.profile_banner_url,
+        location: result?.core.user_results.result?.legacy?.location?.location,
+        followers: result?.core.user_results.result?.legacy?.followers_count,
+        friends: result?.core.user_results.result?.legacy?.friends_count,
+        tweets: result?.core.user_results.result?.legacy?.statuses_count,
+      },
     },
-    // you can add media, retweet/quote info, etc.
-    raw: result, // optional: keep full object if you need it
+    tweetStats: {
+      bookmarks: result?.legacy.bookmark_count,
+      favorites: result?.legacy.favorite_count,
+      quotes: result?.legacy.quote_count,
+      replies: result?.legacy.reply_count,
+      retweets: result?.legacy.retweet_count,
+      views: Number(result?.views.count),
+    },
+    // raw: result, // optional: keep full object if you need it
   };
 }
 
 window.fetch = async function (...args) {
   const [url, options] = args;
 
-  // Call original fetch
   const response = await originalFetch.apply(this, args);
 
-  // Only process if it's a tweet endpoint
   if (isGraphQLTweetEndpoint(url)) {
     try {
-      // Clone the response so we can read it without consuming the original
       const clonedResponse = response.clone();
       const json = await clonedResponse.json();
 
@@ -58,7 +94,6 @@ window.fetch = async function (...args) {
       tweets.forEach((tweet) => {
         const data = normalizeTweet(tweet);
         if (data) {
-          // Send to isolated script
           window.postMessage(
             {
               source: "TWEET_ARCHIVE",
@@ -70,7 +105,6 @@ window.fetch = async function (...args) {
         }
       });
     } catch (err) {
-      // Never break the page if parsing fails
       console.warn("Tweet interceptor fetch error:", err);
     }
   }

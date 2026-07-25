@@ -1,45 +1,106 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>Tweet Archive</title>
+        <title>TweetArchive</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
         <div class="container">
-            <header>
-                <h1>📚 Tweet Archive</h1>
-                <div class="stats">
-                    <span id="totalCount">0</span> tweets archived
+            <!-- Header -->
+            <header class="header">
+                <div class="header-top">
+                    <h1>TweetArchive</h1>
+                    <div class="total-count">
+                        <span id="totalCount">0</span> tweets archived
+                    </div>
+                </div>
+                <!-- Search bar -->
+                <div class="search-bar">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search tweets..."
+                    />
                 </div>
             </header>
 
-            <!-- Search & Filter Bar -->
-            <div class="filters">
-                <input
-                    type="text"
-                    id="searchInput"
-                    placeholder="Search tweets..."
-                />
-
-                <select id="sortBy">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="recentlySeen">Recently Seen</option>
-                </select>
-
-                <select id="filterBy">
-                    <option value="all">All Tweets</option>
-                    <option value="images">With Images</option>
-                    <option value="text">Text Only</option>
-                </select>
-
-                <button id="clearAll" class="danger">Clear All</button>
+            <!-- Filter & Sort row -->
+            <div class="controls">
+                <div class="filter-group">
+                    <button class="control-btn" id="filterAll">
+                        All tweets
+                    </button>
+                    <button class="control-btn" id="filterMedia">
+                        With media
+                    </button>
+                    <button class="control-btn" id="filterQuote">Quotes</button>
+                    <button class="control-btn" id="filterVerified">
+                        Verified
+                    </button>
+                </div>
+                <div class="sort-group">
+                    <button class="control-btn" id="sortAsc">Ascending</button>
+                    <select id="sortField" class="control-select">
+                        <option value="viewedAt">Viewed at</option>
+                        <option value="postedAt">Posted at</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- Results -->
-            <div id="tweetGrid"></div>
+            <!-- Tweet list -->
+            <div id="tweetList" class="tweet-list"></div>
+
+            <!-- Load more button -->
+            <button id="loadMoreBtn" class="load-more-btn hidden">
+                Load more
+            </button>
         </div>
+
+        <!-- Tweet template -->
+        <template id="tweetTemplate">
+            <div class="tweet-row">
+                <a class="avatar-link" target="_blank">
+                    <img class="tweet-avatar" alt="" />
+                </a>
+                <div class="tweet-content">
+                    <div class="tweet-meta">
+                        <a class="user-link" target="_blank">
+                            <span class="user-name"></span>
+                            <span class="verified-badge hidden" title="Verified"
+                                >V</span
+                            >
+                            <span class="parody-badge hidden"></span>
+                            <span class="user-handle"></span>
+                        </a>
+                        <span class="dot">·</span>
+                        <span class="posted-time"></span>
+                        <span class="dot">·</span>
+                        <span class="viewed-time"></span>
+                        <span class="quote-badge hidden">Quote</span>
+                    </div>
+                    <p class="tweet-text"></p>
+                    <div class="media-grid hidden"></div>
+                    <div class="sensitive-overlay hidden">
+                        Possibly sensitive content
+                    </div>
+                    <div class="tweet-stats">
+                        <span class="stat" title="Replies"
+                            >re <span class="stat-replies">0</span></span
+                        >
+                        <span class="stat" title="Retweets"
+                            >rt <span class="stat-retweets">0</span></span
+                        >
+                        <span class="stat" title="Likes"
+                            >fv <span class="stat-likes">0</span></span
+                        >
+                        <span class="stat" title="Views"
+                            >vw <span class="stat-views">0</span></span
+                        >
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <script src="script.js"></script>
     </body>

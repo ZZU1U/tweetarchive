@@ -1,188 +1,340 @@
-// DOM Elements
-const tweetGrid = document.getElementById("tweetGrid");
+// --- Configuration ---
+const PAGE_SIZE = 20;
+const tweetTemplate = document.getElementById("tweetTemplate");
+const tweetList = document.getElementById("tweetList");
 const searchInput = document.getElementById("searchInput");
-const sortBy = document.getElementById("sortBy");
-const filterBy = document.getElementById("filterBy");
-const totalCount = document.getElementById("totalCount");
-const clearAllBtn = document.getElementById("clearAll");
+const sortAscBtn = document.getElementById("sortAsc");
+const sortField = document.getElementById("sortField");
+const totalCountSpan = document.getElementById("totalCount");
 
-// Get all tweets from database
-async function getAllTweets() {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: "getAllTweets" }, (response) => {
-      if (!response) {
-        reject();
-      } else if (response?.error) {
-        reject(response.error);
-      } else {
-        resolve(response.result);
-      }
-    });
-  });
+// Filter buttons
+const filterAll = document.getElementById("filterAll");
+const filterMedia = document.getElementById("filterMedia");
+const filterQuote = document.getElementById("filterQuote");
+const filterVerified = document.getElementById("filterVerified");
+
+// --- State ---
+let allTweets = []; // currently loaded tweets
+let currentCursor = null; // { lastSortValue, lastTweetId } or null
+let hasMore = true; // assume true until we get an empty page
+let activeFilter = "all";
+let ascending = false;
+let sortBy = "viewedAt";
+let isLoading = false; // prevent multiple concurrent loads
+
+// --- Helpers (formatRelativeTime, formatPostedTime, formatCount unchanged) ---
+// (keep your existing formatRelativeTime and formatPostedTime functions)
+
+function formatCount(n) {
+  if (!n) return "0";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return n.toString();
 }
 
-// Delete all tweets
-async function clearAllTweets() {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: "clearAllTweets" }, (response) => {
-      if (!response) {
-        reject();
-      } else if (response?.error) {
-        reject(response.error);
-      } else {
-        resolve();
-      }
-    });
-  });
+/**
+ * Relative time for "viewed at" (always relative)
+ */
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return "";
+
+  const now = Date.now();
+  const then = new Date(timestamp).getTime();
+  const diff = now - then;
+
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 365);
+
+  if (seconds < 60) return "less than a minute ago";
+  if (minutes === 1) return "about a minute ago";
+  if (minutes < 60) return `about ${minutes} minutes ago`;
+  if (hours === 1) return "about an hour ago";
+  if (hours < 24) return `about ${hours} hours ago`;
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  if (months === 1) return "about a month ago";
+  if (months < 12) return `${months} months ago`;
+  if (years === 1) return "about a year ago";
+  return `${years} years ago`;
 }
 
-// Filter and sort tweets
-function processTweets(tweets) {
-  let filtered = [...tweets];
+/**
+ * Posted time: relative for recent, absolute for older (like Twitter)
+ */
+function formatPostedTime(timestamp) {
+  if (!timestamp) return "";
 
-  // Search filter
-  const searchTerm = searchInput.value.toLowerCase().trim();
-  if (searchTerm) {
-    filtered = filtered.filter(
-      (t) =>
-        t.tweetText?.toLowerCase().includes(searchTerm) ||
-        t.userName?.toLowerCase().includes(searchTerm) ||
-        t.userHandle?.toLowerCase().includes(searchTerm),
-    );
-  }
+  const now = Date.now();
+  const then = new Date(timestamp).getTime();
+  const diff = now - then;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  // Image filter
-  const filterType = filterBy.value;
-  if (filterType === "images") {
-    filtered = filtered.filter(
-      (t) => t.tweetImagesAndVideos && t.tweetImagesAndVideos.length > 0,
-    );
-  } else if (filterType === "text") {
-    filtered = filtered.filter(
-      (t) => !t.tweetImagesAndVideos || t.tweetImagesAndVideos.length === 0,
-    );
-  }
+  // If less than 3 days old, use relative
+  if (days < 1) return formatRelativeTime(timestamp);
+  if (days === 1) return "yesterday";
+  if (days <= 3) return `${days} days ago`;
 
-  // Sort
-  const sortType = sortBy.value;
-  filtered.sort((a, b) => {
-    if (sortType === "newest") {
-      return new Date(b.tweetTime) - new Date(a.tweetTime);
-    } else if (sortType === "oldest") {
-      return new Date(a.tweetTime) - new Date(b.tweetTime);
-    } else if (sortType === "recentlySeen") {
-      return new Date(b.seenTime) - new Date(a.seenTime);
-    }
-    return 0;
-  });
-
-  return filtered;
-}
-
-// Render tweets to the grid
-function renderTweets() {
-  getAllTweets()
-    .then((allTweets) => {
-      const filtered = processTweets(allTweets);
-
-      // Update stats
-      totalCount.textContent = allTweets.length;
-
-      if (filtered.length === 0) {
-        tweetGrid.innerHTML = `
-        <div class="empty-state">
-          <h2>No tweets found</h2>
-          <p>${allTweets.length === 0 ? "Start scrolling on X to build your archive!" : "Try adjusting your search or filters."}</p>
-        </div>
-      `;
-        return;
-      }
-
-      // Build HTML
-      tweetGrid.innerHTML = filtered
-        .map(
-          (tweet) => `
-      <div class="tweet-card">
-        <div class="tweet-header">
-          ${tweet.userPfp ? `<img class="tweet-avatar" src="${tweet.userPfp}" alt="${tweet.userName}" />` : ""}
-          <div class="tweet-user">
-            <span class="tweet-name">${escapeHtml(tweet.userName)}</span>
-            <span class="tweet-handle">${escapeHtml(tweet.userHandle)}</span>
-          </div>
-          <span class="tweet-time">${formatTime(tweet.tweetTime)}</span>
-        </div>
-
-        <div class="tweet-text">${escapeHtml(tweet.tweetText || "")}</div>
-
-        ${
-          tweet.tweetImagesAndVideos && tweet.tweetImagesAndVideos.length > 0
-            ? `
-          <div class="tweet-images">
-            ${tweet.tweetImagesAndVideos
-              .map(
-                (img) =>
-                  `<img src="${img.src}" alt="${img.alt || "Tweet image"}" loading="lazy" />`,
-              )
-              .join("")}
-          </div>
-        `
-            : ""
-        }
-
-        <div class="tweet-footer">
-          <span>Archived: ${formatTime(tweet.seenTime)}</span>
-          <span class="tweet-id">ID: ${tweet.tweetId}</span>
-        </div>
-      </div>
-    `,
-        )
-        .join("");
-    })
-    .catch((err) => {
-      console.error("Failed to render tweets:", err);
-      tweetGrid.innerHTML = `<div class="empty-state"><h2>Error loading archive</h2><p>${err.message}</p></div>`;
-    });
-}
-
-// Utility: Escape HTML to prevent XSS
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Utility: Format time
-function formatTime(timestamp) {
-  if (!timestamp) return "Unknown";
-  const date = new Date(timestamp);
-  return date.toLocaleString(undefined, {
+  // Otherwise show absolute date (e.g. "Jul 24, 2026")
+  const d = new Date(then);
+  return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
   });
 }
 
-// 🎯 Debounce search input
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+// --- Fetch total count from DB ---
+async function fetchTotalCount() {
+  try {
+    const res = await chrome.runtime.sendMessage({ action: "getTweetCount" });
+    if (res && res.count !== undefined) {
+      totalCountSpan.textContent = res.count;
+    }
+  } catch (e) {
+    console.error("Failed to get tweet count", e);
+  }
 }
 
-// Event Listeners
-searchInput.addEventListener("input", debounce(renderTweets, 300));
-sortBy.addEventListener("change", renderTweets);
-filterBy.addEventListener("change", renderTweets);
-clearAllBtn.addEventListener("click", clearAllTweets);
+// --- Render functions (unchanged except date formatters) ---
+function renderTweet(tweet) {
+  const clone = tweetTemplate.content.cloneNode(true);
 
-// Initial render
-renderTweets();
+  // Avatar & links
+  const avatarLink = clone.querySelector(".avatar-link");
+  avatarLink.href = `https://twitter.com/${tweet.user.username}`;
+  clone.querySelector(".tweet-avatar").src = tweet.user.profile_image_url;
+
+  const userLink = clone.querySelector(".user-link");
+  userLink.href = `https://twitter.com/${tweet.user.username}`;
+
+  clone.querySelector(".user-name").textContent = tweet.user.name;
+  clone.querySelector(".user-handle").textContent = `@${tweet.user.username}`;
+
+  if (tweet.user.isVerified) {
+    clone.querySelector(".verified-badge").classList.remove("hidden");
+  }
+  if (tweet.user.isParody) {
+    clone.querySelector(".parody-badge").classList.remove("hidden");
+    clone.querySelector(".parody-badge").textContent = "P";
+  }
+
+  // --- Use the new relative / posted formatters ---
+  clone.querySelector(".posted-time").textContent = formatPostedTime(
+    tweet.postedAt,
+  );
+  clone.querySelector(".viewed-time").textContent =
+    `Viewed ${formatRelativeTime(tweet.viewedAt)}`;
+
+  if (tweet.isQuote) {
+    clone.querySelector(".quote-badge").classList.remove("hidden");
+  }
+
+  clone.querySelector(".tweet-text").textContent = tweet.tweetText || "";
+
+  if (tweet.tweetMedia && tweet.tweetMedia.length) {
+    const grid = clone.querySelector(".media-grid");
+    grid.classList.remove("hidden");
+    if (tweet.tweetMedia.length === 1) grid.classList.add("single");
+    tweet.tweetMedia.forEach((url) => {
+      const img = document.createElement("img");
+      img.src = url;
+      img.loading = "lazy";
+      grid.appendChild(img);
+    });
+  }
+
+  if (tweet.isSensitive) {
+    clone.querySelector(".sensitive-overlay").classList.remove("hidden");
+  }
+
+  const stats = clone.querySelector(".tweet-stats");
+  stats.querySelector(".stat-replies").textContent = formatCount(
+    tweet.tweetStats.replies,
+  );
+  stats.querySelector(".stat-retweets").textContent = formatCount(
+    tweet.tweetStats.retweets,
+  );
+  stats.querySelector(".stat-likes").textContent = formatCount(
+    tweet.tweetStats.favorites,
+  );
+  stats.querySelector(".stat-views").textContent = formatCount(
+    tweet.tweetStats.views,
+  );
+
+  return clone;
+}
+
+// Filter local data (no sorting, already sorted by DB)
+function applyFilters(tweets) {
+  let result = [...tweets];
+  const query = searchInput.value.toLowerCase().trim();
+  if (query) {
+    result = result.filter((t) => t.tweetText.toLowerCase().includes(query));
+  }
+  if (activeFilter === "media") {
+    result = result.filter((t) => t.tweetMedia && t.tweetMedia.length > 0);
+  } else if (activeFilter === "quote") {
+    result = result.filter((t) => t.isQuote);
+  } else if (activeFilter === "verified") {
+    result = result.filter((t) => t.user.isVerified);
+  }
+  return result;
+}
+
+function renderAll() {
+  tweetList.innerHTML = "";
+  const filtered = applyFilters(allTweets);
+  filtered.forEach((tweet) => tweetList.appendChild(renderTweet(tweet)));
+}
+
+// --- Pagination calls (modified) ---
+async function loadFirstPage() {
+  isLoading = true;
+  try {
+    const res = await chrome.runtime.sendMessage({
+      action: "getTweetsPage",
+      sortField: sortBy,
+      ascending: ascending,
+    });
+    allTweets = res.items || [];
+    currentCursor = res.nextCursor || null;
+    hasMore = Boolean(res.nextCursor);
+    renderAll();
+  } catch (e) {
+    console.error("Failed to load tweets", e);
+  } finally {
+    isLoading = false;
+  }
+}
+
+async function loadNextPage() {
+  if (!hasMore || isLoading) return;
+  isLoading = true;
+  try {
+    const res = await chrome.runtime.sendMessage({
+      action: "getTweetsPage",
+      cursor: currentCursor,
+      sortField: sortBy,
+      ascending: ascending,
+    });
+    if (res.items && res.items.length) {
+      allTweets = allTweets.concat(res.items);
+      currentCursor = res.nextCursor || null;
+      hasMore = Boolean(res.nextCursor);
+      renderAll(); // re-render everything (simple approach; for performance you could append only new ones)
+    } else {
+      hasMore = false;
+    }
+  } catch (e) {
+    console.error("Failed to load more", e);
+  } finally {
+    isLoading = false;
+  }
+}
+
+// --- Infinite scroll with IntersectionObserver ---
+let sentinelEl = null;
+function setupInfiniteScroll() {
+  // Remove old sentinel if any
+  if (sentinelEl) sentinelEl.remove();
+  // Create a tiny element at the very bottom
+  sentinelEl = document.createElement("div");
+  sentinelEl.id = "scroll-sentinel";
+  tweetList.appendChild(sentinelEl);
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore && !isLoading) {
+        loadNextPage();
+      }
+    },
+    { rootMargin: "200px" },
+  ); // trigger a bit before reaching the bottom
+
+  observer.observe(sentinelEl);
+}
+
+// Call after rendering to re-attach sentinel
+function refreshInfiniteScroll() {
+  // Always put a sentinel after the last tweet in the DOM
+  if (sentinelEl) {
+    // Re-append it to be the last child
+    tweetList.appendChild(sentinelEl);
+  }
+}
+
+// Override renderAll to always include the sentinel
+function renderAll() {
+  tweetList.innerHTML = "";
+  const filtered = applyFilters(allTweets);
+  filtered.forEach((tweet) => tweetList.appendChild(renderTweet(tweet)));
+  // ensure sentinel is at the end
+  refreshInfiniteScroll();
+}
+
+// --- Filter / sort change – reload from scratch ---
+async function reloadFromScratch() {
+  currentCursor = null;
+  allTweets = [];
+  hasMore = true;
+  await loadFirstPage();
+  fetchTotalCount(); // also update total count
+}
+
+// --- Event listeners (updated) ---
+filterAll.addEventListener("click", () => {
+  activeFilter = "all";
+  updateFilterButtons();
+  renderAll(); // just re-filter loaded data (no reload)
+});
+filterMedia.addEventListener("click", () => {
+  activeFilter = "media";
+  updateFilterButtons();
+  renderAll();
+});
+filterQuote.addEventListener("click", () => {
+  activeFilter = "quote";
+  updateFilterButtons();
+  renderAll();
+});
+filterVerified.addEventListener("click", () => {
+  activeFilter = "verified";
+  updateFilterButtons();
+  renderAll();
+});
+
+function updateFilterButtons() {
+  [filterAll, filterMedia, filterQuote, filterVerified].forEach((b) =>
+    b.classList.remove("active"),
+  );
+  if (activeFilter === "all") filterAll.classList.add("active");
+  else if (activeFilter === "media") filterMedia.classList.add("active");
+  else if (activeFilter === "quote") filterQuote.classList.add("active");
+  else if (activeFilter === "verified") filterVerified.classList.add("active");
+}
+
+searchInput.addEventListener("input", renderAll); // only filters, doesn't reload
+
+sortAscBtn.addEventListener("click", () => {
+  ascending = !ascending;
+  sortAscBtn.textContent = ascending ? "Ascending" : "Descending";
+  reloadFromScratch();
+});
+
+sortField.addEventListener("change", (e) => {
+  sortBy = e.target.value;
+  reloadFromScratch();
+});
+
+// --- Initial load ---
+async function init() {
+  await fetchTotalCount();
+  setupInfiniteScroll();
+  await loadFirstPage();
+}
+
+init();
