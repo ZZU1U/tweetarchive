@@ -1,11 +1,16 @@
 // --- Configuration ---
-const PAGE_SIZE = 20;
+let PAGE_SIZE = 20; // will be overridden by settings
 const tweetTemplate = document.getElementById("tweetTemplate");
 const tweetList = document.getElementById("tweetList");
 const searchInput = document.getElementById("searchInput");
 const sortAscBtn = document.getElementById("sortAsc");
 const sortField = document.getElementById("sortField");
 const totalCountSpan = document.getElementById("totalCount");
+
+const optionsBtn = document.getElementById("openOptions");
+optionsBtn.onclick = () => {
+  chrome.runtime.openOptionsPage();
+};
 
 // Filter buttons
 const filterAll = document.getElementById("filterAll");
@@ -104,12 +109,20 @@ function renderTweet(tweet) {
   const clone = tweetTemplate.content.cloneNode(true);
 
   // Avatar & links
+  const tweetUrl = `https://twitter.com/${tweet.user.username}/status/${tweet.tweetId}`;
+  const profileUrl = `https://twitter.com/${tweet.user.username}`;
+
   const avatarLink = clone.querySelector(".avatar-link");
-  avatarLink.href = `https://twitter.com/${tweet.user.username}`;
+  avatarLink.href = profileUrl;
   clone.querySelector(".tweet-avatar").src = tweet.user.profile_image_url;
 
   const userLink = clone.querySelector(".user-link");
-  userLink.href = `https://twitter.com/${tweet.user.username}`;
+  userLink.href = profileUrl;
+
+  // Tweet links (posted time + tweet text) point to the tweet itself
+  clone.querySelectorAll(".tweet-link").forEach((link) => {
+    link.href = tweetUrl;
+  });
 
   clone.querySelector(".user-name").textContent = tweet.user.name;
   clone.querySelector(".user-handle").textContent = `@${tweet.user.username}`;
@@ -199,6 +212,7 @@ async function loadFirstPage() {
       action: "getTweetsPage",
       sortField: sortBy,
       ascending: ascending,
+      pageSize: PAGE_SIZE,
     });
     allTweets = res.items || [];
     currentCursor = res.nextCursor || null;
@@ -220,6 +234,7 @@ async function loadNextPage() {
       cursor: currentCursor,
       sortField: sortBy,
       ascending: ascending,
+      pageSize: PAGE_SIZE,
     });
     if (res.items && res.items.length) {
       allTweets = allTweets.concat(res.items);
@@ -330,8 +345,58 @@ sortField.addEventListener("change", (e) => {
   reloadFromScratch();
 });
 
+// --- Theme ---
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.classList.add("dark");
+  } else if (theme === "light") {
+    document.documentElement.classList.remove("dark");
+  } else {
+    // auto: use system preference
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (prefersDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }
+}
+
+// Listen for system theme changes (for "auto" mode)
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  chrome.storage.sync.get({ theme: "auto" }).then((stored) => {
+    if (stored.theme === "auto") applyTheme("auto");
+  });
+});
+
+// --- Load settings ---
+async function loadSettings() {
+  try {
+    const stored = await chrome.storage.sync.get({
+      maxTweetsPerPage: 20,
+      theme: "auto",
+    });
+    PAGE_SIZE = stored.maxTweetsPerPage || 20;
+    applyTheme(stored.theme);
+  } catch (e) {
+    console.warn("Failed to load settings, using defaults", e);
+  }
+}
+
+// Listen for settings changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "sync") return;
+  if (changes.maxTweetsPerPage) {
+    PAGE_SIZE = changes.maxTweetsPerPage.newValue || 20;
+  }
+  if (changes.theme) {
+    applyTheme(changes.theme.newValue);
+  }
+});
+
 // --- Initial load ---
 async function init() {
+  await loadSettings();
   await fetchTotalCount();
   setupInfiniteScroll();
   await loadFirstPage();

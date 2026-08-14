@@ -1,11 +1,32 @@
+// Which endpoint types are currently enabled (set by relay via custom event)
+let enabledSources = {
+  homeTimeline: true,
+  tweetDetail: true,
+  userTweets: true,
+  searchTimeline: true,
+};
+
+// Listen for settings updates from the relay script
+window.addEventListener("TWEET_ARCHIVE_SETTINGS", (event) => {
+  if (event.detail && event.detail.saveSources) {
+    enabledSources = event.detail.saveSources;
+  }
+});
+
+function sourceTypeFromUrl(url) {
+  if (url.includes("HomeTimeline")) return "homeTimeline";
+  if (url.includes("TweetDetail")) return "tweetDetail";
+  if (url.includes("UserTweets")) return "userTweets";
+  if (url.includes("SearchTimeline")) return "searchTimeline";
+  return null;
+}
+
 function isGraphQLTweetEndpoint(url) {
-  return (
-    url.includes("/i/api/graphql/") &&
-    (url.includes("TweetDetail") ||
-      url.includes("HomeTimeline") ||
-      url.includes("UserTweets") ||
-      url.includes("SearchTimeline"))
-  );
+  const sourceType = sourceTypeFromUrl(url);
+  if (!sourceType) return false;
+  // Check if this source type is enabled
+  if (!enabledSources[sourceType]) return false;
+  return url.includes("/i/api/graphql/");
 }
 
 function extractTweets(obj, found = []) {

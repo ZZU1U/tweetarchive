@@ -193,22 +193,11 @@ async function getUserInfo(id) {
   });
 }
 
-function tx(db, storeName, mode) {
-  const transaction = db.transaction(storeName, mode);
-  const store = transaction.objectStore(storeName);
-  return {
-    store,
-    done: new Promise((res, rej) => {
-      transaction.oncomplete = res;
-      transaction.onerror = rej;
-    }),
-  };
-}
-
 async function getTweetsPage({
   cursor,
   sortField = "viewedAt",
   ascending = false,
+  pageSize = 20,
 } = {}) {
   const db = await getDB();
   const transaction = db.transaction([TWEET_STORE_NAME], "readonly");
@@ -253,12 +242,12 @@ async function getTweetsPage({
     }
 
     items.push(c.value);
-    if (items.length >= 20) break;
+    if (items.length >= pageSize) break;
     c.continue();
   }
 
   let nextCursor = null;
-  if (items.length === 20) {
+  if (items.length === pageSize) {
     const lastItem = items[items.length - 1];
     nextCursor = {
       lastSortValue: lastItem[sortField],
@@ -290,6 +279,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
           cursor: message.cursor || null,
           sortField: message.sortField || "viewedAt",
           ascending: message.ascending || false,
+          pageSize: message.pageSize || 20,
         });
         console.log(tweets);
         sendResponse(tweets);
@@ -373,6 +363,17 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         });
       }
       break;
+    case "displayedTweet":
+      try {
+        sendResponse({
+          success: true,
+        });
+      } catch (err) {
+        sendResponse({
+          error: err,
+          success: false,
+        });
+      }
     default:
       sendResponse({
         error: "Unknown action",
@@ -380,8 +381,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 });
 
-// OTHER LISTENERS
-
+// Extension Page
 chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.create({ url: chrome.runtime.getURL("archive/index.html") });
 });

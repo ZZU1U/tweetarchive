@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>TweetArchive Settings</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>TweetArchive</h1>
+        <p class="subtitle">Settings</p>
+      </header>
+
+      <main>
+        <!-- Theme -->
+        <section class="setting-group">
+          <h2>Theme</h2>
+          <div class="radio-group" id="themeGroup">
+            <label class="radio-label">
+              <input type="radio" name="theme" value="light" />
+              <span>Light</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="theme" value="dark" />
+              <span>Dark</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="theme" value="auto" />
+              <span>Auto</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Save from sources -->
+        <section class="setting-group">
+          <h2>Save tweets from</h2>
+          <p class="desc">
+            Choose which timeline types get archived when you browse.
+          </p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="sourceHomeTimeline" />
+            <span>Home timeline (For You / Following)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="sourceTweetDetail" />
+            <span>Replies &amp; conversations</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="sourceUserTweets" />
+            <span>Profile pages</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="sourceSearchTimeline" />
+            <span>Search results</span>
+          </label>
+        </section>
+
+        <!-- Pagination -->
+        <section class="setting-group">
+          <h2>Pagination</h2>
+          <p class="desc">
+            How many tweets per page in the archive view:
+          </p>
+          <div class="input-row">
+            <input
+              type="number"
+              id="maxTweetsPerPage"
+              min="5"
+              max="100"
+              step="5"
+            />
+            <span class="input-suffix">tweets</span>
+          </div>
+        </section>
+
+        <!-- Status -->
+        <div id="status" class="status hidden"></div>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
