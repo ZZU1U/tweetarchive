@@ -23,7 +23,7 @@ The archive UI is inspired by the Blue Archive game aesthetic.
 
 ## Installation
 
-TweetArchive is distributed as a zip file from the [Releases](https://github.com/your-name/tweetarchive/releases) page.
+TweetArchive is distributed as a zip file from the [Releases](https://github.com/zzu1u/tweetarchive/releases) page.
 
 1. Download the latest `tweetarchive.zip`
 2. Unzip it somewhere on your computer (keep the folder — it must stay in place)
