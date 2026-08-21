@@ -5,6 +5,8 @@ const DEFAULTS = {
   maxTweetsPerPage: 20,
   saveSensitive: false,
   showStats: true,
+  cursorEffects: true,
+  mediaClick: "lightbox",
   saveSources: {
     homeTimeline: true,
     tweetDetail: true,
@@ -20,7 +22,21 @@ const sourceTweetDetail = document.getElementById("sourceTweetDetail");
 const sourceUserTweets = document.getElementById("sourceUserTweets");
 const sourceSearchTimeline = document.getElementById("sourceSearchTimeline");
 const maxTweetsPerPage = document.getElementById("maxTweetsPerPage");
+const mediaClickRadios = document.querySelectorAll('input[name="mediaClick"]');
+const cursorEffects = document.getElementById("cursorEffects");
 const statusEl = document.getElementById("status");
+const statusText = document.getElementById("statusText");
+
+// --- Top bar navigation ---
+const backBtn = document.getElementById("backBtn");
+if (backBtn) backBtn.onclick = () => window.close();
+
+const homeBtn = document.getElementById("homeBtn");
+if (homeBtn) {
+  homeBtn.onclick = () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL("archive/index.html") });
+  };
+}
 
 // --- Theme for the options page itself ---
 function applyTheme(theme) {
@@ -52,7 +68,7 @@ window
 // --- Show status toast ---
 let statusTimeout;
 function showStatus(message) {
-  statusEl.textContent = message;
+  statusText.textContent = message;
   statusEl.classList.remove("hidden");
   clearTimeout(statusTimeout);
   statusTimeout = setTimeout(() => {
@@ -77,6 +93,12 @@ async function loadAndRender() {
   );
   if (checkedRadio) checkedRadio.checked = true;
 
+  // Media click
+  const mediaRadio = document.querySelector(
+    `input[name="mediaClick"][value="${stored.mediaClick}"]`,
+  );
+  if (mediaRadio) mediaRadio.checked = true;
+
   // Sources
   sourceHomeTimeline.checked = saveSources.homeTimeline;
   sourceTweetDetail.checked = saveSources.tweetDetail;
@@ -85,6 +107,9 @@ async function loadAndRender() {
 
   // Pagination
   maxTweetsPerPage.value = stored.maxTweetsPerPage;
+
+  // Cursor effects
+  cursorEffects.checked = stored.cursorEffects;
 }
 
 // --- Save settings ---
@@ -97,11 +122,16 @@ async function saveAll() {
     searchTimeline: sourceSearchTimeline.checked,
   };
   const pagination = parseInt(maxTweetsPerPage.value, 10) || 20;
+  const mediaClick =
+    document.querySelector('input[name="mediaClick"]:checked')?.value ||
+    "lightbox";
 
   await chrome.storage.sync.set({
     theme,
     saveSources,
     maxTweetsPerPage: pagination,
+    mediaClick,
+    cursorEffects: cursorEffects.checked,
   });
 
   applyTheme(theme);
@@ -115,8 +145,13 @@ function bindAutoSave() {
     radio.addEventListener("change", saveAll);
   });
 
+  // Media click radios
+  mediaClickRadios.forEach((radio) => {
+    radio.addEventListener("change", saveAll);
+  });
+
   // Source checkboxes
-  [sourceHomeTimeline, sourceTweetDetail, sourceUserTweets, sourceSearchTimeline].forEach(
+  [sourceHomeTimeline, sourceTweetDetail, sourceUserTweets, sourceSearchTimeline, cursorEffects].forEach(
     (cb) => {
       cb.addEventListener("change", saveAll);
     },

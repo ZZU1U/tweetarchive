@@ -2,83 +2,130 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TweetArchive Settings</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>TweetArchive</h1>
-        <p class="subtitle">Settings</p>
-      </header>
+    <div class="watermark" aria-hidden="true"></div>
+    <svg class="watermark-tri" viewBox="0 0 220 200" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linejoin="round" aria-hidden="true"><path d="M110 6L216 192H4z"/></svg>
 
-      <main>
-        <!-- Theme -->
-        <section class="setting-group">
-          <h2>Theme</h2>
-          <div class="radio-group" id="themeGroup">
-            <label class="radio-label">
-              <input type="radio" name="theme" value="light" />
-              <span>Light</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="theme" value="dark" />
-              <span>Dark</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="theme" value="auto" />
-              <span>Auto</span>
-            </label>
-          </div>
-        </section>
+    <!-- ===================== TOP BAR ===================== -->
+    <header class="top-bar">
+      <div class="top-bar-inner">
+        <div class="title-wrap">
+          <button id="backBtn" class="icon-btn back" title="Back">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="page-title">Settings</h1>
+          <span class="help-chip" title="TweetArchive options">?</span>
+        </div>
+        <div class="top-actions">
+          <span class="logo-chip"><span class="logo-gem"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M6.4 3h11.2l4.1 5.6L12 21 2.3 8.6z"/></svg></span> TweetArchive</span>
+          <button id="homeBtn" class="icon-btn navy" title="Open archive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
 
-        <!-- Save from sources -->
-        <section class="setting-group">
-          <h2>Save tweets from</h2>
-          <p class="desc">
-            Choose which timeline types get archived when you browse.
-          </p>
-          <label class="checkbox-label">
-            <input type="checkbox" id="sourceHomeTimeline" />
-            <span>Home timeline (For You / Following)</span>
+    <!-- ===================== PANELS ===================== -->
+    <main class="container-narrow">
+      <!-- Theme -->
+      <section class="panel">
+        <h2 class="panel-title">Display</h2>
+        <p class="panel-desc">Screen brightness preference</p>
+        <div class="radio-group" id="themeGroup" role="radiogroup">
+          <label class="tab">
+            <input type="radio" name="theme" value="light" />
+            <span>☀ Light</span>
           </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="sourceTweetDetail" />
-            <span>Replies &amp; conversations</span>
+          <label class="tab">
+            <input type="radio" name="theme" value="dark" />
+            <span>☾ Dark</span>
           </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="sourceUserTweets" />
-            <span>Profile pages</span>
+          <label class="tab">
+            <input type="radio" name="theme" value="auto" />
+            <span>↻ Auto</span>
           </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="sourceSearchTimeline" />
-            <span>Search results</span>
+        </div>
+      </section>
+
+      <!-- Media click behavior -->
+      <section class="panel">
+        <h2 class="panel-title">Media click</h2>
+        <p class="panel-desc">What happens when you click a picture in the archive</p>
+        <div class="radio-group" id="mediaClickGroup" role="radiogroup">
+          <label class="tab">
+            <input type="radio" name="mediaClick" value="lightbox" />
+            <span>⛶ Preview here</span>
           </label>
-        </section>
+          <label class="tab">
+            <input type="radio" name="mediaClick" value="newTab" />
+            <span>↗ New tab</span>
+          </label>
+          <label class="tab">
+            <input type="radio" name="mediaClick" value="original" />
+            <span>🐦 Original post</span>
+          </label>
+        </div>
+      </section>
 
-        <!-- Pagination -->
-        <section class="setting-group">
-          <h2>Pagination</h2>
-          <p class="desc">
-            How many tweets per page in the archive view:
-          </p>
-          <div class="input-row">
-            <input
-              type="number"
-              id="maxTweetsPerPage"
-              min="5"
-              max="100"
-              step="5"
-            />
-            <span class="input-suffix">tweets</span>
-          </div>
-        </section>
+      <!-- Save sources -->
+      <section class="panel">
+        <h2 class="panel-title">Save tweets from</h2>
+        <p class="panel-desc">Choose which timeline types get archived when you browse</p>
+        <label class="check-row">
+          <input type="checkbox" id="sourceHomeTimeline" />
+          <span class="check-box"><span class="check-mark">✓</span></span>
+          <span class="check-label">Home timeline <i class="tag">For You / Following</i></span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="sourceTweetDetail" />
+          <span class="check-box"><span class="check-mark">✓</span></span>
+          <span class="check-label">Replies &amp; conversations</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="sourceUserTweets" />
+          <span class="check-box"><span class="check-mark">✓</span></span>
+          <span class="check-label">Profile pages</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="sourceSearchTimeline" />
+          <span class="check-box"><span class="check-mark">✓</span></span>
+          <span class="check-label">Search results</span>
+        </label>
+      </section>
 
-        <!-- Status -->
-        <div id="status" class="status hidden"></div>
-      </main>
-    </div>
+      <!-- Pagination -->
+      <section class="panel">
+        <h2 class="panel-title">Pagination</h2>
+        <p class="panel-desc">Tweets shown per page in the archive</p>
+        <div class="input-row">
+          <input id="maxTweetsPerPage" type="number" min="5" max="100" step="5" />
+          <span class="input-suffix">tweets</span>
+        </div>
+      </section>
 
+      <!-- Cursor effects -->
+      <section class="panel">
+        <h2 class="panel-title">Cursor effects</h2>
+        <p class="panel-desc">Blue Archive–style tap ripple and sparkle trail in your archive</p>
+        <label class="check-row">
+          <input type="checkbox" id="cursorEffects" />
+          <span class="check-box"><span class="check-mark">✓</span></span>
+          <span class="check-label">Cursor effects <i class="tag">Cosmetic only</i></span>
+        </label>
+      </section>
+
+      <!-- Status toast -->
+      <div id="status" class="status hidden">
+        <span class="status-icon">✓</span>
+        <span id="statusText" class="status-text">Saved</span>
+      </div>
+    </main>
+
+    <script src="../scripts/effects.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

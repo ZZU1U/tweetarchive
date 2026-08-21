@@ -21,12 +21,29 @@ function sourceTypeFromUrl(url) {
   return null;
 }
 
+// Action endpoints that update a tweet's state (likes, bookmarks, retweets).
+// These are always intercepted regardless of saveSources, because they only
+// update existing archived tweets rather than saving new ones.
+function actionTypeFromUrl(url) {
+  if (url.includes("FavoriteTweet")) return "favorite";
+  if (url.includes("UnfavoriteTweet")) return "unfavorite";
+  if (url.includes("CreateBookmark")) return "bookmark";
+  if (url.includes("DeleteBookmark")) return "unbookmark";
+  if (url.includes("CreateRetweet")) return "retweet";
+  if (url.includes("DeleteRetweet")) return "unretweet";
+  return null;
+}
+
 function isGraphQLTweetEndpoint(url) {
+  if (!url.includes("/i/api/graphql/")) return false;
+
+  // Action endpoints are always captured
+  if (actionTypeFromUrl(url)) return true;
+
+  // Timeline endpoints respect the settings
   const sourceType = sourceTypeFromUrl(url);
   if (!sourceType) return false;
-  // Check if this source type is enabled
-  if (!enabledSources[sourceType]) return false;
-  return url.includes("/i/api/graphql/");
+  return !!enabledSources[sourceType];
 }
 
 function extractTweets(obj, found = []) {
@@ -41,6 +58,69 @@ function extractTweets(obj, found = []) {
   }
 
   return found;
+}
+
+// Extract a single updated tweet from an action endpoint response
+// (e.g. data.favorite_tweet.tweet_results.result, data.create_retweet.retweet_results.result)
+function extractTweetFromAction(json) {
+  if (!json || typeof json !== "object") return null;
+  const data = json.data;
+  if (!data || typeof data !== "object") return null;
+
+  for (const value of Object.values(data)) {
+    if (!value || typeof value !== "object") continue;
+    if (value.tweet_results && value.tweet_results.result) {
+      return value.tweet_results.result;
+    }
+    if (value.retweet_results && value.retweet_results.result) {
+      return value.retweet_results.result;
+    }
+  }
+  return null;
+}
+
+// Shared handler for all intercepted GraphQL responses.
+// - Action endpoints -> post a TWEET_STATE_UPDATE (partial state only)
+// - Timeline / detail endpoints -> post TWEET_DATA (full tweet)
+function handleGraphQLResponse(url, json) {
+  const actionType = actionTypeFromUrl(url);
+
+  if (actionType) {
+    const result = extractTweetFromAction(json);
+    const data = result ? normalizeTweet(result) : null;
+    if (data) {
+      window.postMessage(
+        {
+          source: "TWEET_ARCHIVE",
+          type: "TWEET_STATE_UPDATE",
+          payload: {
+            tweetId: data.tweetId,
+            isFavorite: data.isFavorite,
+            isBookmarked: data.isBookmarked,
+            isRetweeted: data.isRetweeted,
+            tweetStats: data.tweetStats,
+          },
+        },
+        "*",
+      );
+    }
+    return;
+  }
+
+  const tweets = extractTweets(json);
+  tweets.forEach((tweet) => {
+    const data = normalizeTweet(tweet);
+    if (data) {
+      window.postMessage(
+        {
+          source: "TWEET_ARCHIVE",
+          type: "TWEET_DATA",
+          payload: data,
+        },
+        "*",
+      );
+    }
+  });
 }
 
 function normalizeTweet(result) {
@@ -101,6 +181,9 @@ function normalizeTweet(result) {
   };
 }
 
+// Keep a reference to the real fetch before patching
+const originalFetch = window.fetch.bind(window);
+
 window.fetch = async function (...args) {
   const [url, options] = args;
 
@@ -110,21 +193,7 @@ window.fetch = async function (...args) {
     try {
       const clonedResponse = response.clone();
       const json = await clonedResponse.json();
-
-      const tweets = extractTweets(json);
-      tweets.forEach((tweet) => {
-        const data = normalizeTweet(tweet);
-        if (data) {
-          window.postMessage(
-            {
-              source: "TWEET_ARCHIVE",
-              type: "TWEET_DATA",
-              payload: data,
-            },
-            "*",
-          );
-        }
-      });
+      handleGraphQLResponse(url, json);
     } catch (err) {
       console.warn("Tweet interceptor fetch error:", err);
     }
@@ -146,20 +215,7 @@ XMLHttpRequest.prototype.send = function (body) {
     if (isGraphQLTweetEndpoint(this._url)) {
       try {
         const json = JSON.parse(this.responseText);
-        const tweets = extractTweets(json);
-        tweets.forEach((tweet) => {
-          const data = normalizeTweet(tweet);
-          if (data) {
-            window.postMessage(
-              {
-                source: "TWEET_ARCHIVE",
-                type: "TWEET_DATA",
-                payload: data,
-              },
-              "*",
-            );
-          }
-        });
+        handleGraphQLResponse(this._url, json);
       } catch (err) {
         console.warn("Tweet interceptor XHR error:", err);
       }

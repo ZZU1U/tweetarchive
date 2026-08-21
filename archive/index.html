@@ -2,111 +2,165 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>TweetArchive</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-        <div class="container">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-top">
-                    <h1>TweetArchive</h1>
-                    <button id="openOptions" class="options-btn" title="Settings">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </button>
-                </div>
-                <div class="header-row">
-                    <div class="total-count">
-                        <span id="totalCount">0</span> tweets archived
-                    </div>
-                </div>
-                <!-- Search bar -->
-                <div class="search-bar">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="Search tweets..."
-                    />
-                </div>
-            </header>
+        <div class="watermark" aria-hidden="true"></div>
+        <svg class="watermark-tri" viewBox="0 0 220 200" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linejoin="round" aria-hidden="true"><path d="M110 6L216 192H4z"/></svg>
 
-            <!-- Filter & Sort row -->
-            <div class="controls">
-                <div class="filter-group">
-                    <button class="control-btn" id="filterAll">
-                        All tweets
-                    </button>
-                    <button class="control-btn" id="filterMedia">
-                        With media
-                    </button>
-                    <button class="control-btn" id="filterQuote">Quotes</button>
-                    <button class="control-btn" id="filterVerified">
-                        Verified
+        <!-- ===================== TOP BAR (BA §1.1) ===================== -->
+        <header class="top-bar">
+            <div class="top-bar-inner">
+                <div class="title-wrap">
+                    <h1 class="page-title">Tweet Archive</h1>
+                    <span class="help-chip" title="Tweets you've seen are archived locally">?</span>
+                </div>
+                <div class="top-actions">
+                    <!-- Currency-style chip: bubble icon + count + divider + plus -->
+                    <div class="currency-chip" title="Total archived tweets">
+                        <span class="chip-icon bubble">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </span>
+                        <span id="totalCount" class="chip-number">0</span>
+                        <span class="chip-divider"></span>
+                        <button id="refreshBtn" class="chip-plus" title="Refresh from database">+</button>
+                    </div>
+                    <button id="openOptions" class="icon-btn navy" title="Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </button>
                 </div>
-                <div class="sort-group">
-                    <button class="control-btn" id="sortAsc">Ascending</button>
-                    <select id="sortField" class="control-select">
+            </div>
+        </header>
+
+        <!-- ===================== SUB-HEADER BAND (BA §2.C) ===================== -->
+        <div class="sub-band">
+            <div class="container-narrow">
+                <div class="search-bar">
+                    <input id="searchInput" type="text" placeholder="SEARCH TWEETS..." />
+                </div>
+
+                <!-- Skewed filter tabs -->
+                <nav class="tab-group" role="tablist">
+                    <button class="tab active" id="filterAll" role="tab"><span>All</span></button>
+                    <button class="tab tab-media" id="filterMedia" role="tab"><span>Media</span></button>
+                    <button class="tab tab-quote" id="filterQuote" role="tab"><span>Quote</span></button>
+                    <button class="tab tab-verified" id="filterVerified" role="tab"><span>★ Verified</span></button>
+                </nav>
+
+                <div class="sub-actions">
+                    <select id="sortField" class="pill-select">
                         <option value="viewedAt">Viewed at</option>
                         <option value="postedAt">Posted at</option>
                     </select>
+                    <button id="sortAsc" class="sort-toggle" title="Toggle sort direction">Descending</button>
+                    <select id="engagementFilter" class="pill-select" title="Filter by engagement">
+                        <option value="all">All</option>
+                        <option value="liked">Liked</option>
+                        <option value="retweeted">Retweeted</option>
+                        <option value="bookmarked">Bookmarked</option>
+                    </select>
                 </div>
             </div>
+        </div>
 
+        <!-- ===================== MAIN ===================== -->
+        <main class="container-narrow">
             <!-- Tweet list -->
             <div id="tweetList" class="tweet-list"></div>
 
-            <!-- Load more button -->
-            <button id="loadMoreBtn" class="load-more-btn hidden">
-                Load more
-            </button>
-        </div>
+            <!-- Empty state -->
+            <div id="emptyState" class="empty-state hidden">
+                <div class="empty-halo">
+                    <span class="empty-star">★</span>
+                </div>
+                <p class="empty-title">No tweets yet</p>
+                <p class="empty-sub">Browse Twitter — anything you see gets stored here</p>
+            </div>
 
-        <!-- Tweet template -->
+            <!-- Load more -->
+            <button id="loadMoreBtn" class="btn-yellow load-more-btn hidden">
+                Load more
+                <span class="keycap">MORE</span>
+            </button>
+        </main>
+
+        <!-- ===================== TWEET CARD TEMPLATE ===================== -->
         <template id="tweetTemplate">
             <div class="tweet-row">
-                <a class="avatar-link" target="_blank">
-                    <img class="tweet-avatar" alt="" />
-                </a>
+                <!-- Avatar + overlapping badges (star = verified, P = parody) -->
+                <div class="avatar-wrap">
+                    <a class="avatar-link" target="_blank">
+                        <img class="tweet-avatar" alt="" />
+                    </a>
+                    <span class="verified-badge hidden" title="Verified">★</span>
+                    <span class="parody-badge hidden"></span>
+                </div>
+
                 <div class="tweet-content">
+                    <!-- Name plate -->
                     <div class="tweet-meta">
                         <a class="user-link" target="_blank">
                             <span class="user-name"></span>
-                            <span class="verified-badge hidden" title="Verified"
-                                >V</span
-                            >
-                            <span class="parody-badge hidden"></span>
                             <span class="user-handle"></span>
                         </a>
-                        <span class="dot">·</span>
-                        <a class="tweet-link" target="_blank"><span class="posted-time"></span></a>
-                        <span class="dot">·</span>
-                        <span class="viewed-time"></span>
                         <span class="quote-badge hidden">Quote</span>
                     </div>
-                    <a class="tweet-link" target="_blank"><p class="tweet-text"></p></a>
-                    <div class="media-grid hidden"></div>
-                    <div class="sensitive-overlay hidden">
-                        Possibly sensitive content
+
+                    <div class="time-row">
+                        <a class="tweet-link" target="_blank"><span class="posted-time chip-time"></span></a>
+                        <span class="viewed-time chip-time chip-viewed"></span>
                     </div>
+
+                    <a class="tweet-link" target="_blank"><p class="tweet-text"></p></a>
+
+                    <div class="media-grid hidden"></div>
+
+                    <div class="sensitive-overlay hidden">🔒 Sensitive content</div>
+
+                    <!-- Status tags / stat chips -->
                     <div class="tweet-stats">
-                        <span class="stat" title="Replies"
-                            >re <span class="stat-replies">0</span></span
-                        >
-                        <span class="stat" title="Retweets"
-                            >rt <span class="stat-retweets">0</span></span
-                        >
-                        <span class="stat" title="Likes"
-                            >fv <span class="stat-likes">0</span></span
-                        >
-                        <span class="stat" title="Views"
-                            >vw <span class="stat-views">0</span></span
-                        >
+                        <span class="stat stat-reply" title="Replies">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                            <span class="stat-replies">0</span>
+                        </span>
+                        <span class="stat stat-rt" title="Retweets">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                            <span class="stat-retweets">0</span>
+                        </span>
+                        <span class="stat stat-like" title="Likes">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            <span class="stat-likes">0</span>
+                        </span>
+                        <span class="stat stat-bookmark" title="Bookmarks">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                            <span class="stat-bookmarks">0</span>
+                        </span>
+                        <span class="stat stat-view" title="Views">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span class="stat-views">0</span>
+                        </span>
                     </div>
                 </div>
             </div>
         </template>
 
+        <!-- ===================== MEDIA LIGHTBOX ===================== -->
+        <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Media preview">
+            <button id="lbClose" class="lb-close" title="Close (Esc)" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <button id="lbPrev" class="lb-nav lb-prev" title="Previous (←)" aria-label="Previous media">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <img id="lbImage" alt="" />
+            <button id="lbNext" class="lb-nav lb-next" title="Next (→)" aria-label="Next media">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+
+        <script src="../scripts/effects.js"></script>
         <script src="script.js"></script>
     </body>
 </html>

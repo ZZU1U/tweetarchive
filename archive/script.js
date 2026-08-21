@@ -5,12 +5,21 @@ const tweetList = document.getElementById("tweetList");
 const searchInput = document.getElementById("searchInput");
 const sortAscBtn = document.getElementById("sortAsc");
 const sortField = document.getElementById("sortField");
+const engagementFilter = document.getElementById("engagementFilter");
 const totalCountSpan = document.getElementById("totalCount");
 
 const optionsBtn = document.getElementById("openOptions");
 optionsBtn.onclick = () => {
   chrome.runtime.openOptionsPage();
 };
+
+const refreshBtn = document.getElementById("refreshBtn");
+refreshBtn.onclick = () => {
+  reloadFromScratch();
+  fetchTotalCount();
+};
+
+const emptyState = document.getElementById("emptyState");
 
 // Filter buttons
 const filterAll = document.getElementById("filterAll");
@@ -23,9 +32,11 @@ let allTweets = []; // currently loaded tweets
 let currentCursor = null; // { lastSortValue, lastTweetId } or null
 let hasMore = true; // assume true until we get an empty page
 let activeFilter = "all";
+let activeEngagement = "all";
 let ascending = false;
 let sortBy = "viewedAt";
 let isLoading = false; // prevent multiple concurrent loads
+let mediaClickBehavior = "lightbox"; // lightbox | newTab | original
 
 // --- Helpers (formatRelativeTime, formatPostedTime, formatCount unchanged) ---
 // (keep your existing formatRelativeTime and formatPostedTime functions)
@@ -152,12 +163,13 @@ function renderTweet(tweet) {
     const grid = clone.querySelector(".media-grid");
     grid.classList.remove("hidden");
     if (tweet.tweetMedia.length === 1) grid.classList.add("single");
-    tweet.tweetMedia.forEach((url) => {
-      const img = document.createElement("img");
-      img.src = url;
-      img.loading = "lazy";
-      grid.appendChild(img);
+    const tweetUrlForMedia = `https://twitter.com/${tweet.user.username}/status/${tweet.tweetId}`;
+    tweet.tweetMedia.forEach((url, index) => {
+      grid.appendChild(buildMediaItem(url, index));
     });
+    // Stash the media array + tweet URL on the grid for lightbox navigation
+    grid.__media = tweet.tweetMedia;
+    grid.__tweetUrl = tweetUrlForMedia;
   }
 
   if (tweet.isSensitive) {
@@ -174,12 +186,123 @@ function renderTweet(tweet) {
   stats.querySelector(".stat-likes").textContent = formatCount(
     tweet.tweetStats.favorites,
   );
+  stats.querySelector(".stat-bookmarks").textContent = formatCount(
+    tweet.tweetStats.bookmarks,
+  );
   stats.querySelector(".stat-views").textContent = formatCount(
     tweet.tweetStats.views,
   );
 
+  // Self-engagement state: colour the icon only when *I* engaged
+  if (tweet.isFavorite) stats.querySelector(".stat-like").classList.add("self");
+  if (tweet.isRetweeted) stats.querySelector(".stat-rt").classList.add("self");
+  if (tweet.isBookmarked) stats.querySelector(".stat-bookmark").classList.add("self");
+
   return clone;
 }
+
+/**
+ * Build one clickable media item based on the user's media-click setting:
+ *  - lightbox: opens the in-page preview with per-post navigation
+ *  - newTab:   opens the image URL in a new tab
+ *  - original: opens the original tweet on X
+ */
+function buildMediaItem(url, index) {
+  const img = document.createElement("img");
+  img.src = url;
+  img.loading = "lazy";
+  img.alt = "";
+
+  const item = document.createElement(
+    mediaClickBehavior === "lightbox" ? "button" : "a",
+  );
+  item.className = "media-item";
+
+  if (mediaClickBehavior === "lightbox") {
+    item.type = "button";
+    item.title = "Preview";
+    item.dataset.index = String(index);
+    item.addEventListener("click", () => {
+      const grid = item.closest(".media-grid");
+      openLightbox(grid.__media || [url], index);
+    });
+  } else if (mediaClickBehavior === "newTab") {
+    item.href = url;
+    item.target = "_blank";
+    item.rel = "noopener noreferrer";
+    item.title = "Open image in new tab";
+  } else {
+    item.href = "#";
+    item.target = "_blank";
+    item.rel = "noopener noreferrer";
+    item.title = "Open original post";
+    item.addEventListener("click", (e) => {
+      const grid = item.closest(".media-grid");
+      if (grid.__tweetUrl) {
+        e.preventDefault();
+        chrome.tabs.create({ url: grid.__tweetUrl });
+      }
+    });
+  }
+
+  item.appendChild(img);
+  return item;
+}
+
+/* ============================================================
+   MEDIA LIGHTBOX — in-page preview, navigation within post
+   ============================================================ */
+let lbMedia = [];
+let lbIndex = 0;
+
+const lightbox = document.getElementById("lightbox");
+const lbImage = document.getElementById("lbImage");
+const lbPrev = document.getElementById("lbPrev");
+const lbNext = document.getElementById("lbNext");
+const lbClose = document.getElementById("lbClose");
+
+function openLightbox(media, startIndex) {
+  lbMedia = media || [];
+  lbIndex = Math.min(Math.max(startIndex || 0, 0), Math.max(lbMedia.length - 1, 0));
+  updateLightbox();
+  lightbox.classList.add("open");
+  document.body.classList.add("lb-open");
+}
+
+function updateLightbox() {
+  lbImage.src = lbMedia[lbIndex] || "";
+  lbPrev.classList.toggle("disabled", lbMedia.length < 2);
+  lbNext.classList.toggle("disabled", lbMedia.length < 2);
+}
+
+function closeLightbox() {
+  lightbox.classList.remove("open");
+  document.body.classList.remove("lb-open");
+  lbImage.src = "";
+}
+
+lbClose.addEventListener("click", closeLightbox);
+lightbox.addEventListener("click", (e) => {
+  if (e.target === lightbox) closeLightbox(); // click on the tinted backdrop
+});
+lbPrev.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (lbMedia.length < 2) return;
+  lbIndex = (lbIndex - 1 + lbMedia.length) % lbMedia.length;
+  updateLightbox();
+});
+lbNext.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (lbMedia.length < 2) return;
+  lbIndex = (lbIndex + 1) % lbMedia.length;
+  updateLightbox();
+});
+document.addEventListener("keydown", (e) => {
+  if (!lightbox.classList.contains("open")) return;
+  if (e.key === "Escape") closeLightbox();
+  else if (e.key === "ArrowLeft") lbPrev.click();
+  else if (e.key === "ArrowRight") lbNext.click();
+});
 
 // Filter local data (no sorting, already sorted by DB)
 function applyFilters(tweets) {
@@ -194,6 +317,15 @@ function applyFilters(tweets) {
     result = result.filter((t) => t.isQuote);
   } else if (activeFilter === "verified") {
     result = result.filter((t) => t.user.isVerified);
+  }
+
+  // Engagement filter (liked / retweeted / bookmarked)
+  if (activeEngagement === "liked") {
+    result = result.filter((t) => t.isFavorite);
+  } else if (activeEngagement === "retweeted") {
+    result = result.filter((t) => t.isRetweeted);
+  } else if (activeEngagement === "bookmarked") {
+    result = result.filter((t) => t.isBookmarked);
   }
   return result;
 }
@@ -289,6 +421,8 @@ function renderAll() {
   filtered.forEach((tweet) => tweetList.appendChild(renderTweet(tweet)));
   // ensure sentinel is at the end
   refreshInfiniteScroll();
+  // toggle empty state
+  emptyState.classList.toggle("hidden", filtered.length > 0);
 }
 
 // --- Filter / sort change – reload from scratch ---
@@ -345,6 +479,11 @@ sortField.addEventListener("change", (e) => {
   reloadFromScratch();
 });
 
+engagementFilter.addEventListener("change", (e) => {
+  activeEngagement = e.target.value;
+  renderAll(); // client-side re-filter of loaded tweets
+});
+
 // --- Theme ---
 function applyTheme(theme) {
   if (theme === "dark") {
@@ -375,8 +514,10 @@ async function loadSettings() {
     const stored = await chrome.storage.sync.get({
       maxTweetsPerPage: 20,
       theme: "auto",
+      mediaClick: "lightbox",
     });
     PAGE_SIZE = stored.maxTweetsPerPage || 20;
+    mediaClickBehavior = stored.mediaClick || "lightbox";
     applyTheme(stored.theme);
   } catch (e) {
     console.warn("Failed to load settings, using defaults", e);
@@ -391,6 +532,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (changes.theme) {
     applyTheme(changes.theme.newValue);
+  }
+  if (changes.mediaClick) {
+    mediaClickBehavior = changes.mediaClick.newValue || "lightbox";
   }
 });
 

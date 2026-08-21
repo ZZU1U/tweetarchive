@@ -46,4 +46,19 @@ window.addEventListener("message", (event) => {
       console.warn("Relay sendMessage error:", err);
     }
   }
+
+  if (event.data.type === "TWEET_STATE_UPDATE" && event.data.payload) {
+    try {
+      chrome.runtime.sendMessage({
+        action: "updateTweetState",
+        tweetId: event.data.payload.tweetId,
+        isFavorite: event.data.payload.isFavorite,
+        isBookmarked: event.data.payload.isBookmarked,
+        isRetweeted: event.data.payload.isRetweeted,
+        tweetStats: event.data.payload.tweetStats,
+      });
+    } catch (err) {
+      console.warn("Relay sendMessage error:", err);
+    }
+  }
 });

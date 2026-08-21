@@ -193,6 +193,17 @@ async function getUserInfo(id) {
   });
 }
 
+async function getTweet(tweetId) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TWEET_STORE_NAME], "readonly");
+    const store = transaction.objectStore(TWEET_STORE_NAME);
+    const request = store.get(tweetId);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
 async function getTweetsPage({
   cursor,
   sortField = "viewedAt",
@@ -316,6 +327,27 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
           success: false,
           error: err.message,
         });
+      }
+      break;
+    case "updateTweetState":
+      try {
+        const existing = await getTweet(message.tweetId);
+        if (existing) {
+          const updated = {
+            ...existing,
+            isFavorite: message.isFavorite ?? existing.isFavorite,
+            isBookmarked: message.isBookmarked ?? existing.isBookmarked,
+            isRetweeted: message.isRetweeted ?? existing.isRetweeted,
+            tweetStats: {
+              ...existing.tweetStats,
+              ...(message.tweetStats || {}),
+            },
+          };
+          await addTweet(updated);
+        }
+        sendResponse({ success: true });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
       }
       break;
     case "getAllTweets":

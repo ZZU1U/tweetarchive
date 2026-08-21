@@ -5,6 +5,7 @@ const DEFAULTS = {
   maxTweetsPerPage: 20,
   saveSensitive: false,
   showStats: true,
+  cursorEffects: true,
   saveSources: {
     homeTimeline: true,    // "For You" / "Following" timeline
     tweetDetail: true,     // replies / conversations
