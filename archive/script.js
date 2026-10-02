@@ -10,7 +10,7 @@ const totalCountSpan = document.getElementById("totalCount");
 
 const optionsBtn = document.getElementById("openOptions");
 optionsBtn.onclick = () => {
-  chrome.runtime.openOptionsPage();
+  browser.runtime.openOptionsPage();
 };
 
 const refreshBtn = document.getElementById("refreshBtn");
@@ -106,7 +106,7 @@ function formatPostedTime(timestamp) {
 // --- Fetch total count from DB ---
 async function fetchTotalCount() {
   try {
-    const res = await chrome.runtime.sendMessage({ action: "getTweetCount" });
+    const res = await browser.runtime.sendMessage({ action: "getTweetCount" });
     if (res && res.count !== undefined) {
       totalCountSpan.textContent = res.count;
     }
@@ -240,7 +240,7 @@ function buildMediaItem(url, index) {
       const grid = item.closest(".media-grid");
       if (grid.__tweetUrl) {
         e.preventDefault();
-        chrome.tabs.create({ url: grid.__tweetUrl });
+        browser.tabs.create({ url: grid.__tweetUrl });
       }
     });
   }
@@ -340,7 +340,7 @@ function renderAll() {
 async function loadFirstPage() {
   isLoading = true;
   try {
-    const res = await chrome.runtime.sendMessage({
+    const res = await browser.runtime.sendMessage({
       action: "getTweetsPage",
       sortField: sortBy,
       ascending: ascending,
@@ -361,7 +361,7 @@ async function loadNextPage() {
   if (!hasMore || isLoading) return;
   isLoading = true;
   try {
-    const res = await chrome.runtime.sendMessage({
+    const res = await browser.runtime.sendMessage({
       action: "getTweetsPage",
       cursor: currentCursor,
       sortField: sortBy,
@@ -503,7 +503,7 @@ function applyTheme(theme) {
 
 // Listen for system theme changes (for "auto" mode)
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  chrome.storage.sync.get({ theme: "auto" }).then((stored) => {
+  browser.storage.sync.get({ theme: "auto" }).then((stored) => {
     if (stored.theme === "auto") applyTheme("auto");
   });
 });
@@ -511,7 +511,7 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
 // --- Load settings ---
 async function loadSettings() {
   try {
-    const stored = await chrome.storage.sync.get({
+    const stored = await browser.storage.sync.get({
       maxTweetsPerPage: 20,
       theme: "auto",
       mediaClick: "lightbox",
@@ -525,7 +525,7 @@ async function loadSettings() {
 }
 
 // Listen for settings changes
-chrome.storage.onChanged.addListener((changes, area) => {
+browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "sync") return;
   if (changes.maxTweetsPerPage) {
     PAGE_SIZE = changes.maxTweetsPerPage.newValue || 20;

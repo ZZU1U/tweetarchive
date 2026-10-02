@@ -1,6 +1,6 @@
-// Relay settings from chrome.storage to the MAIN world
+// Relay settings from browser.storage to the MAIN world
 async function relaySettings() {
-  const stored = await chrome.storage.sync.get({
+  const stored = await browser.storage.sync.get({
     saveSources: {
       homeTimeline: true,
       tweetDetail: true,
@@ -20,7 +20,7 @@ async function relaySettings() {
 relaySettings();
 
 // Listen for settings changes from options page
-chrome.storage.onChanged.addListener((changes, area) => {
+browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "sync") return;
   if (changes.saveSources) {
     window.dispatchEvent(
@@ -38,7 +38,7 @@ window.addEventListener("message", (event) => {
 
   if (event.data.type === "TWEET_DATA" && event.data.payload) {
     try {
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: "readTweet",
         tweet: event.data.payload,
       });
@@ -49,7 +49,7 @@ window.addEventListener("message", (event) => {
 
   if (event.data.type === "TWEET_STATE_UPDATE" && event.data.payload) {
     try {
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: "updateTweetState",
         tweetId: event.data.payload.tweetId,
         isFavorite: event.data.payload.isFavorite,

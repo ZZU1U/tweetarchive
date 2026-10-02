@@ -34,7 +34,7 @@ if (backBtn) backBtn.onclick = () => window.close();
 const homeBtn = document.getElementById("homeBtn");
 if (homeBtn) {
   homeBtn.onclick = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("archive/index.html") });
+    browser.tabs.create({ url: browser.runtime.getURL("archive/index.html") });
   };
 }
 
@@ -60,7 +60,7 @@ function applyTheme(theme) {
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", () => {
-    chrome.storage.sync.get({ theme: "auto" }).then((stored) => {
+    browser.storage.sync.get({ theme: "auto" }).then((stored) => {
       if (stored.theme === "auto") applyTheme("auto");
     });
   });
@@ -78,7 +78,7 @@ function showStatus(message) {
 
 // --- Load settings and populate form ---
 async function loadAndRender() {
-  const stored = await chrome.storage.sync.get(DEFAULTS);
+  const stored = await browser.storage.sync.get(DEFAULTS);
 
   // Deep-merge saveSources
   const saveSources = {
@@ -126,7 +126,7 @@ async function saveAll() {
     document.querySelector('input[name="mediaClick"]:checked')?.value ||
     "lightbox";
 
-  await chrome.storage.sync.set({
+  await browser.storage.sync.set({
     theme,
     saveSources,
     maxTweetsPerPage: pagination,

@@ -18,7 +18,7 @@ const DEFAULTS = {
  * Load settings from sync storage, merging with defaults.
  */
 async function loadSettings() {
-  const stored = await chrome.storage.sync.get(DEFAULTS);
+  const stored = await browser.storage.sync.get(DEFAULTS);
   // Deep-merge saveSources since nested objects aren't auto-merged
   if (stored.saveSources && typeof stored.saveSources === "object") {
     stored.saveSources = { ...DEFAULTS.saveSources, ...stored.saveSources };
@@ -32,5 +32,5 @@ async function loadSettings() {
  * Save a single setting.
  */
 async function saveSetting(key, value) {
-  await chrome.storage.sync.set({ [key]: value });
+  await browser.storage.sync.set({ [key]: value });
 }

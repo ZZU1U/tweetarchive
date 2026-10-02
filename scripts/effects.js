@@ -16,14 +16,14 @@
   "use strict";
 
   // ----------------------------------------------------------------------
-  // Settings (chrome.storage.sync, key "cursorEffects", default true)
+  // Settings (browser.storage.sync, key "cursorEffects", default true)
   // ----------------------------------------------------------------------
   let enabled = true;
   try {
-    chrome.storage.sync.get({ cursorEffects: true }).then((stored) => {
+    browser.storage.sync.get({ cursorEffects: true }).then((stored) => {
       enabled = !!stored.cursorEffects;
     });
-    chrome.storage.onChanged.addListener((changes, area) => {
+    browser.storage.onChanged.addListener((changes, area) => {
       if (area !== "sync" || !changes || !("cursorEffects" in changes)) return;
       enabled = !!changes.cursorEffects.newValue;
     });

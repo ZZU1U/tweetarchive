@@ -2,7 +2,7 @@
 
 # TweetArchive
 
-A Chrome extension that automatically archives tweets as they appear on your timeline. Every tweet you see on X/Twitter is saved locally to your browser — search, filter, and browse your personal history whenever you want. Never lose a tweet you've seen again.
+A Browser extension that automatically archives tweets as they appear on your timeline. Every tweet you see on X/Twitter is saved locally to your browser — search, filter, and browse your personal history whenever you want. Never lose a tweet you've seen again.
 
 The archive UI is inspired by the Blue Archive game aesthetic.
 
