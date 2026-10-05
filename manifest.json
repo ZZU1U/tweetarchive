@@ -1,6 +1,6 @@
 {
   "name": "TweetArchive",
-  "description": "Archive for tweets you've seen on your timeline so you don't loose them.",
+  "description": "Archive for tweets you've seen on your timeline so you don't lose them.",
   "version": "0.1",
   "manifest_version": 3,
   "permissions": ["storage", "unlimitedStorage"],
@@ -54,7 +54,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tweetarchive@asobinin.space",
-      "strict_min_version": "128.0"
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

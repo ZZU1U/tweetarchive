@@ -6,6 +6,8 @@ A Browser extension that automatically archives tweets as they appear on your ti
 
 The archive UI is inspired by the Blue Archive game aesthetic.
 
+Should be available on [firefox store](https://addons.mozilla.org/en-US/firefox/addon/tweetarchive) *if it has passed the review already*.
+
 ---
 
 ## Features
